@@ -44,8 +44,53 @@ Object.assign(mapLines.style, {
   height: `${data.image.height / 1080 * 100}%`
 });
 
+// 駅名が2つ並ぶ、歩いて乗り換える駅の組。
+const walkingTransfers = new Set([
+  '板橋・新板橋', '後楽園・春日', '春日・後楽園', '小川町・淡路町',
+  '東日本橋・馬喰横山', '馬喰町・馬喰横山', '有楽町・日比谷', '田町・三田'
+]);
+const plainStationName = name => name.replace('ツ', '');
+
+function transferStationNames(journey) {
+  if (!journey.transfers || !journey.transferStations) return [];
+  const names = journey.transferStations.split('・');
+  const groups = [];
+  for (let index = 0; index < names.length; index++) {
+    const pair = `${names[index]}・${names[index + 1]}`;
+    if (walkingTransfers.has(pair)) {
+      groups.push(pair);
+      index++;
+    } else {
+      groups.push(names[index]);
+    }
+  }
+  return groups;
+}
+
+// 乗換駅名を、ほかの駅ラベルと重ならない向きに置く。
+function placeTransferLabel(label) {
+  const bounds = mapRegion.getBoundingClientRect();
+  const others = [...stationLayer.querySelectorAll('.station-label')]
+    .filter(other => other !== label)
+    .map(other => other.getBoundingClientRect());
+  let best = { side: 'above', overlap: Infinity };
+  for (const side of ['above', 'below', 'right', 'left', 'above-right', 'above-left', 'below-right', 'below-left']) {
+    label.dataset.side = side;
+    const rect = label.getBoundingClientRect();
+    const inside = rect.left >= bounds.left && rect.right <= bounds.right &&
+      rect.top >= bounds.top && rect.bottom <= bounds.bottom;
+    if (!inside) continue;
+    const overlap = others.reduce((sum, other) => sum +
+      Math.max(0, Math.min(rect.right, other.right) - Math.max(rect.left, other.left)) *
+      Math.max(0, Math.min(rect.bottom, other.bottom) - Math.max(rect.top, other.top)), 0);
+    if (overlap < best.overlap) best = { side, overlap };
+  }
+  label.dataset.side = best.side;
+}
+
 function drawRoute(station, destination, journey) {
   routeGroup.replaceChildren();
+  stationLayer.querySelectorAll('.transfer-name').forEach(label => label.remove());
   const routePoints = journey
     ? findRoutePath(station.id, destination.stationId, journey.lines, journey.transferPoints, journey.originPoint)
     : [];
@@ -62,17 +107,24 @@ function drawRoute(station, destination, journey) {
       routeGroup.appendChild(path);
     }
 
-    // 乗換地点に印を出す。
+    // 乗換地点を経路の順に集めて、印を出す。
     for (let index = 1; index < routePoints.length; index++) {
       if (routePoints[index].transferFromPrevious) {
-        transferMarks.push([
-          (routePoints[index - 1].x + routePoints[index].x) / 2,
-          (routePoints[index - 1].y + routePoints[index].y) / 2
-        ]);
+        transferMarks.push({
+          x: (routePoints[index - 1].x + routePoints[index].x) / 2,
+          y: (routePoints[index - 1].y + routePoints[index].y) / 2,
+          order: index
+        });
       }
     }
-    transferMarks.push(...(journey.extraTransferPoints ?? []));
-    for (const [x, y] of transferMarks) {
+    for (const [x, y] of journey.extraTransferPoints ?? []) {
+      const distanceTo = point => Math.hypot(point.x - x, point.y - y);
+      const order = routePoints.reduce((nearest, point, index) =>
+        distanceTo(point) < distanceTo(routePoints[nearest]) ? index : nearest, 0);
+      transferMarks.push({ x, y, order });
+    }
+    transferMarks.sort((a, b) => a.order - b.order);
+    for (const { x, y } of transferMarks) {
       const marker = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       marker.setAttribute('class', 'transfer-marker');
       marker.setAttribute('transform', `translate(${x} ${y})`);
@@ -86,13 +138,28 @@ function drawRoute(station, destination, journey) {
     }
   }
 
-  // 乗換地点が駅ラベルと重なるときは、ラベルも強調する。
-  for (const candidate of data.stations) {
-    const isTransfer = transferMarks.some(([x, y]) =>
-      x >= candidate.x - 6 && x <= candidate.x + candidate.width + 6 &&
-      y >= candidate.y - 6 && y <= candidate.y + candidate.height + 6);
-    stationLayer.querySelector(`[data-station-id="${candidate.id}"]`)?.classList.toggle('is-transfer', isTransfer);
+  // 乗換駅名を出す。地図にある駅はラベルを強調し、ない駅は印のそばにラベルを足す。
+  const transferNames = journey ? transferStationNames(journey) : [];
+  const transferStationIds = new Set();
+  if (transferNames.length === transferMarks.length) {
+    transferMarks.forEach(({ x, y }, index) => {
+      const names = transferNames[index].split('・').map(plainStationName);
+      const existing = data.stations.find(candidate => names.includes(plainStationName(candidate.name)));
+      if (existing) {
+        transferStationIds.add(existing.id);
+        return;
+      }
+      const label = document.createElement('div');
+      label.className = 'station-label transfer-name is-transfer';
+      label.textContent = transferNames[index];
+      Object.assign(label.style, { left: `${x / 1352 * 100}%`, top: `${y / 1080 * 100}%` });
+      stationLayer.appendChild(label);
+      placeTransferLabel(label);
+    });
   }
+  stationLayer.querySelectorAll('.station-label[data-station-id]').forEach(button => {
+    button.classList.toggle('is-transfer', transferStationIds.has(button.dataset.stationId));
+  });
 
   mapRegion.classList.toggle('has-active-route', routePoints.length > 1);
   document.getElementById('travel-route').textContent = routePoints.length ? '路線図上の経路を強調表示中' : '';
@@ -118,7 +185,6 @@ function updateTravelDisplay() {
   document.getElementById('travel-status').textContent = time === undefined ? 'この駅の所要時間は未登録です' : '';
   document.getElementById('transfer-count').textContent = journey ? journey.transfers : '—';
 
-  drawRoute(station, destination, journey);
   document.querySelectorAll('.station-label').forEach(button => {
     const active = button.dataset.destinationId
       ? button.dataset.destinationId === selectedDestinationId
@@ -129,6 +195,8 @@ function updateTravelDisplay() {
   networkNodes.querySelectorAll('.network-node').forEach(node => {
     node.classList.toggle('is-selected', node.dataset.stationId === selectedStationId || node.dataset.stationId === destination.stationId);
   });
+
+  drawRoute(station, destination, journey);
 }
 
 function selectStation(stationId) {

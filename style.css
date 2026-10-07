@@ -777,3 +777,41 @@ body,
   color: #fff;
   box-shadow: 0 0 1.1cqh rgba(255, 233, 77, .85);
 }
+
+.station-label.transfer-name {
+  width: auto;
+  min-height: 3.148148cqh;
+  padding: 0 .8cqh;
+  z-index: 3;
+  pointer-events: none;
+  translate: none;
+  transform: translate(-50%, calc(-100% - 1.7cqh));
+}
+
+.station-label.transfer-name[data-side="below"] {
+  transform: translate(-50%, 1.7cqh);
+}
+
+.station-label.transfer-name[data-side="right"] {
+  transform: translate(1.7cqh, -50%);
+}
+
+.station-label.transfer-name[data-side="left"] {
+  transform: translate(calc(-100% - 1.7cqh), -50%);
+}
+
+.station-label.transfer-name[data-side="above-right"] {
+  transform: translate(1.2cqh, calc(-100% - 1.2cqh));
+}
+
+.station-label.transfer-name[data-side="above-left"] {
+  transform: translate(calc(-100% - 1.2cqh), calc(-100% - 1.2cqh));
+}
+
+.station-label.transfer-name[data-side="below-right"] {
+  transform: translate(1.2cqh, 1.2cqh);
+}
+
+.station-label.transfer-name[data-side="below-left"] {
+  transform: translate(calc(-100% - 1.2cqh), 1.2cqh);
+}
