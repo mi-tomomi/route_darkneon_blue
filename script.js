@@ -67,25 +67,59 @@ function transferStationNames(journey) {
   return groups;
 }
 
-// 乗換駅名を、ほかの駅ラベルと重ならない向きに置く。
+// 駅ラベルの位置を、路線図の座標（1352×1080）で返す。
+function stationLabelBoxes() {
+  const bounds = mapRegion.getBoundingClientRect();
+  const scale = 1352 / bounds.width;
+  return [...stationLayer.querySelectorAll('.station-label')].map(label => {
+    const rect = label.getBoundingClientRect();
+    return {
+      left: (rect.left - bounds.left) * scale,
+      right: (rect.right - bounds.left) * scale,
+      top: (rect.top - bounds.top) * scale,
+      bottom: (rect.bottom - bounds.top) * scale
+    };
+  });
+}
+
+// 乗換地点の印が駅ラベルに隠れるときは、経路に沿ってラベルの外までずらす。
+function markClearOfLabels(mark, routePoints, boxes) {
+  const margin = 14;
+  const isClear = point => !boxes.some(box =>
+    point.x > box.left - margin && point.x < box.right + margin &&
+    point.y > box.top - margin && point.y < box.bottom + margin);
+  if (isClear(mark)) return mark;
+  const distanceTo = point => Math.hypot(point.x - mark.x, point.y - mark.y);
+  const nearest = routePoints
+    .slice(Math.max(0, mark.order - 40), mark.order + 40)
+    .filter(isClear)
+    .sort((a, b) => distanceTo(a) - distanceTo(b))[0];
+  return nearest ? { ...mark, x: nearest.x, y: nearest.y } : mark;
+}
+
+// 乗換駅名を、ほかの駅ラベルや印と重ならない向きに置く。
 function placeTransferLabel(label) {
   const bounds = mapRegion.getBoundingClientRect();
-  const others = [...stationLayer.querySelectorAll('.station-label')]
+  const others = [...stationLayer.querySelectorAll('.station-label'), ...routeGroup.querySelectorAll('.transfer-marker')]
     .filter(other => other !== label)
     .map(other => other.getBoundingClientRect());
-  let best = { side: 'above', overlap: Infinity };
-  for (const side of ['above', 'below', 'right', 'left', 'above-right', 'above-left', 'below-right', 'below-left']) {
-    label.dataset.side = side;
-    const rect = label.getBoundingClientRect();
-    const inside = rect.left >= bounds.left && rect.right <= bounds.right &&
-      rect.top >= bounds.top && rect.bottom <= bounds.bottom;
-    if (!inside) continue;
-    const overlap = others.reduce((sum, other) => sum +
-      Math.max(0, Math.min(rect.right, other.right) - Math.max(rect.left, other.left)) *
-      Math.max(0, Math.min(rect.bottom, other.bottom) - Math.max(rect.top, other.top)), 0);
-    if (overlap < best.overlap) best = { side, overlap };
+  let best = { side: 'above', gap: '1.7cqh', overlap: Infinity };
+  for (const gap of ['1.7cqh', '3.4cqh', '5.1cqh']) {
+    label.style.setProperty('--transfer-gap', gap);
+    for (const side of ['above', 'below', 'right', 'left', 'above-right', 'above-left', 'below-right', 'below-left']) {
+      label.dataset.side = side;
+      const rect = label.getBoundingClientRect();
+      const inside = rect.left >= bounds.left && rect.right <= bounds.right &&
+        rect.top >= bounds.top && rect.bottom <= bounds.bottom;
+      if (!inside) continue;
+      const overlap = others.reduce((sum, other) => sum +
+        Math.max(0, Math.min(rect.right, other.right) - Math.max(rect.left, other.left)) *
+        Math.max(0, Math.min(rect.bottom, other.bottom) - Math.max(rect.top, other.top)), 0);
+      if (overlap < best.overlap) best = { side, gap, overlap };
+    }
   }
   label.dataset.side = best.side;
+  label.style.setProperty('--transfer-gap', best.gap);
 }
 
 function drawRoute(station, destination, journey) {
@@ -124,6 +158,8 @@ function drawRoute(station, destination, journey) {
       transferMarks.push({ x, y, order });
     }
     transferMarks.sort((a, b) => a.order - b.order);
+    const labelBoxes = stationLabelBoxes();
+    for (const mark of transferMarks) Object.assign(mark, markClearOfLabels(mark, routePoints, labelBoxes));
     for (const { x, y } of transferMarks) {
       const marker = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       marker.setAttribute('class', 'transfer-marker');

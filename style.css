@@ -785,35 +785,36 @@ body,
   z-index: 3;
   pointer-events: none;
   translate: none;
-  transform: translate(-50%, calc(-100% - 1.7cqh));
+  --transfer-gap: 1.7cqh;
+  transform: translate(-50%, calc(-100% - var(--transfer-gap)));
 }
 
 .station-label.transfer-name[data-side="below"] {
-  transform: translate(-50%, 1.7cqh);
+  transform: translate(-50%, var(--transfer-gap));
 }
 
 .station-label.transfer-name[data-side="right"] {
-  transform: translate(1.7cqh, -50%);
+  transform: translate(var(--transfer-gap), -50%);
 }
 
 .station-label.transfer-name[data-side="left"] {
-  transform: translate(calc(-100% - 1.7cqh), -50%);
+  transform: translate(calc(-100% - var(--transfer-gap)), -50%);
 }
 
 .station-label.transfer-name[data-side="above-right"] {
-  transform: translate(1.2cqh, calc(-100% - 1.2cqh));
+  transform: translate(calc(var(--transfer-gap) * .7), calc(-100% - calc(var(--transfer-gap) * .7)));
 }
 
 .station-label.transfer-name[data-side="above-left"] {
-  transform: translate(calc(-100% - 1.2cqh), calc(-100% - 1.2cqh));
+  transform: translate(calc(-100% - calc(var(--transfer-gap) * .7)), calc(-100% - calc(var(--transfer-gap) * .7)));
 }
 
 .station-label.transfer-name[data-side="below-right"] {
-  transform: translate(1.2cqh, 1.2cqh);
+  transform: translate(calc(var(--transfer-gap) * .7), calc(var(--transfer-gap) * .7));
 }
 
 .station-label.transfer-name[data-side="below-left"] {
-  transform: translate(calc(-100% - 1.2cqh), 1.2cqh);
+  transform: translate(calc(-100% - calc(var(--transfer-gap) * .7)), calc(var(--transfer-gap) * .7));
 }
 
 .transfer-marker {
