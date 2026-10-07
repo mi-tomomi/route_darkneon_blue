@@ -815,3 +815,18 @@ body,
 .station-label.transfer-name[data-side="below-left"] {
   transform: translate(calc(-100% - 1.2cqh), 1.2cqh);
 }
+
+.transfer-marker {
+  animation: transferMarkerBlink 1.1s ease-in-out infinite;
+}
+
+@keyframes transferMarkerBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transfer-marker {
+    animation: none;
+  }
+}
