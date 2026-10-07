@@ -831,3 +831,31 @@ body,
     animation: none;
   }
 }
+
+/* 選んだ駅と乗換駅は、ラベルを大きくして目立たせる。 */
+.station-label.is-selected:not(.destination) {
+  min-height: 3.9cqh;
+  padding: .62cqh 1.15cqh;
+  font-size: 2.6cqh !important;
+}
+
+.station-label.is-transfer {
+  outline-width: .34cqh;
+  font-size: 1.95cqh !important;
+}
+
+.station-label.is-transfer:not(.transfer-name) {
+  left: var(--station-center-x) !important;
+  width: max-content !important;
+  min-width: var(--station-width);
+  height: auto !important;
+  min-height: 3.5cqh;
+  padding: .5cqh 1cqh;
+  transform: translateX(-50%) scale(1.04);
+  z-index: 2;
+}
+
+.station-label.transfer-name {
+  min-height: 3.5cqh;
+  padding: .5cqh 1cqh;
+}

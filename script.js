@@ -104,7 +104,7 @@ function placeTransferLabel(label) {
     .filter(other => other !== label)
     .map(other => other.getBoundingClientRect());
   let best = { side: 'above', gap: '1.7cqh', overlap: Infinity };
-  for (const gap of ['1.7cqh', '3.4cqh', '5.1cqh']) {
+  for (const gap of ['1.7cqh', '3.4cqh', '5.1cqh', '6.8cqh']) {
     label.style.setProperty('--transfer-gap', gap);
     for (const side of ['above', 'below', 'right', 'left', 'above-right', 'above-left', 'below-right', 'below-left']) {
       label.dataset.side = side;
@@ -125,11 +125,13 @@ function placeTransferLabel(label) {
 function drawRoute(station, destination, journey) {
   routeGroup.replaceChildren();
   stationLayer.querySelectorAll('.transfer-name').forEach(label => label.remove());
+  stationLayer.querySelectorAll('.is-transfer').forEach(label => label.classList.remove('is-transfer'));
   const routePoints = journey
     ? findRoutePath(station.id, destination.stationId, journey.lines, journey.transferPoints, journey.originPoint)
     : [];
 
   const transferMarks = [];
+  const transferNames = journey ? transferStationNames(journey) : [];
   if (routePoints.length > 1) {
     const pathData = routePoints.map((point, index) => `${index ? 'L' : 'M'}${point.x} ${point.y}`).join(' ');
     for (const className of ['route-path-halo', 'route-path', 'route-path-sparkle']) {
@@ -158,6 +160,16 @@ function drawRoute(station, destination, journey) {
       transferMarks.push({ x, y, order });
     }
     transferMarks.sort((a, b) => a.order - b.order);
+
+    // 地図にある乗換駅はラベルを強調する。大きさが変わるので、印の位置を決める前に行う。
+    if (transferNames.length === transferMarks.length) {
+      transferMarks.forEach((mark, index) => {
+        const names = transferNames[index].split('・').map(plainStationName);
+        const existing = data.stations.find(candidate => names.includes(plainStationName(candidate.name)));
+        if (existing) stationLayer.querySelector(`[data-station-id="${existing.id}"]`).classList.add('is-transfer');
+        else mark.name = transferNames[index];
+      });
+    }
     const labelBoxes = stationLabelBoxes();
     for (const mark of transferMarks) Object.assign(mark, markClearOfLabels(mark, routePoints, labelBoxes));
     for (const { x, y } of transferMarks) {
@@ -174,28 +186,16 @@ function drawRoute(station, destination, journey) {
     }
   }
 
-  // 乗換駅名を出す。地図にある駅はラベルを強調し、ない駅は印のそばにラベルを足す。
-  const transferNames = journey ? transferStationNames(journey) : [];
-  const transferStationIds = new Set();
-  if (transferNames.length === transferMarks.length) {
-    transferMarks.forEach(({ x, y }, index) => {
-      const names = transferNames[index].split('・').map(plainStationName);
-      const existing = data.stations.find(candidate => names.includes(plainStationName(candidate.name)));
-      if (existing) {
-        transferStationIds.add(existing.id);
-        return;
-      }
-      const label = document.createElement('div');
-      label.className = 'station-label transfer-name is-transfer';
-      label.textContent = transferNames[index];
-      Object.assign(label.style, { left: `${x / 1352 * 100}%`, top: `${y / 1080 * 100}%` });
-      stationLayer.appendChild(label);
-      placeTransferLabel(label);
-    });
+  // 地図にない乗換駅は、印のそばに駅名のラベルを足す。
+  for (const { x, y, name } of transferMarks) {
+    if (!name) continue;
+    const label = document.createElement('div');
+    label.className = 'station-label transfer-name is-transfer';
+    label.textContent = name;
+    Object.assign(label.style, { left: `${x / 1352 * 100}%`, top: `${y / 1080 * 100}%` });
+    stationLayer.appendChild(label);
+    placeTransferLabel(label);
   }
-  stationLayer.querySelectorAll('.station-label[data-station-id]').forEach(button => {
-    button.classList.toggle('is-transfer', transferStationIds.has(button.dataset.stationId));
-  });
 
   mapRegion.classList.toggle('has-active-route', routePoints.length > 1);
   document.getElementById('travel-route').textContent = routePoints.length ? '路線図上の経路を強調表示中' : '';
