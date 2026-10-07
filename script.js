@@ -126,9 +126,21 @@ function drawRoute(station, destination, journey) {
   routeGroup.replaceChildren();
   stationLayer.querySelectorAll('.transfer-name').forEach(label => label.remove());
   stationLayer.querySelectorAll('.is-transfer').forEach(label => label.classList.remove('is-transfer'));
-  const routePoints = journey
+  let routePoints = journey
     ? findRoutePath(station.id, destination.stationId, journey.lines, journey.transferPoints, journey.originPoint)
     : [];
+  // 経路の始点が駅ラベルから離れているときは、駅までつなぐ。
+  if (routePoints.length && !journey.originPoint) {
+    const [start] = routePoints;
+    const outside = start.x < station.x - 8 || start.x > station.x + station.width + 8 ||
+      start.y < station.y - 8 || start.y > station.y + station.height + 8;
+    if (outside) {
+      routePoints = [
+        { x: station.x + station.width / 2, y: station.y + station.height / 2, transferFromPrevious: 0 },
+        ...routePoints
+      ];
+    }
+  }
 
   const transferMarks = [];
   const transferNames = journey ? transferStationNames(journey) : [];
