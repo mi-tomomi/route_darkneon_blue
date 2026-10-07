@@ -122,6 +122,23 @@ function placeTransferLabel(label) {
   label.style.setProperty('--transfer-gap', best.gap);
 }
 
+// 経路の折れ目を丸めて、なめらかな線にする。
+function smoothPathData(points) {
+  const radius = 7;
+  const toward = (from, to, length) => {
+    const total = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+    const ratio = Math.min(length, total / 2) / total;
+    return `${from.x + (to.x - from.x) * ratio} ${from.y + (to.y - from.y) * ratio}`;
+  };
+  let pathData = `M${points[0].x} ${points[0].y}`;
+  for (let index = 1; index < points.length - 1; index++) {
+    const corner = points[index];
+    pathData += ` L${toward(corner, points[index - 1], radius)}` +
+      ` Q${corner.x} ${corner.y} ${toward(corner, points[index + 1], radius)}`;
+  }
+  return `${pathData} L${points.at(-1).x} ${points.at(-1).y}`;
+}
+
 function drawRoute(station, destination, journey) {
   routeGroup.replaceChildren();
   stationLayer.querySelectorAll('.transfer-name').forEach(label => label.remove());
@@ -145,7 +162,7 @@ function drawRoute(station, destination, journey) {
   const transferMarks = [];
   const transferNames = journey ? transferStationNames(journey) : [];
   if (routePoints.length > 1) {
-    const pathData = routePoints.map((point, index) => `${index ? 'L' : 'M'}${point.x} ${point.y}`).join(' ');
+    const pathData = smoothPathData(routePoints);
     for (const className of ['route-path-halo', 'route-path', 'route-path-sparkle']) {
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('class', className);
