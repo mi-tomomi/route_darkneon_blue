@@ -755,3 +755,25 @@ body,
       drop-shadow(0 0 42px #158cff);
   }
 }
+
+.transfer-marker {
+  pointer-events: none;
+}
+
+.transfer-marker-ring {
+  fill: #06122b;
+  stroke: #ffe94d;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 9px #ffe94d) drop-shadow(0 0 16px #ffb800);
+}
+
+.transfer-marker-core {
+  fill: #fff7b0;
+}
+
+.station-label.is-transfer {
+  outline: .28cqh solid #ffe94d;
+  outline-offset: .2cqh;
+  color: #fff;
+  box-shadow: 0 0 1.1cqh rgba(255, 233, 77, .85);
+}

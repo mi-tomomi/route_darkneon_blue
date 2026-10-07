@@ -50,6 +50,7 @@ function drawRoute(station, destination, journey) {
     ? findRoutePath(station.id, destination.stationId, journey.lines, journey.transferPoints, journey.originPoint)
     : [];
 
+  const transferMarks = [];
   if (routePoints.length > 1) {
     const pathData = routePoints.map((point, index) => `${index ? 'L' : 'M'}${point.x} ${point.y}`).join(' ');
     for (const className of ['route-path-halo', 'route-path', 'route-path-sparkle']) {
@@ -61,6 +62,36 @@ function drawRoute(station, destination, journey) {
       routeGroup.appendChild(path);
     }
 
+    // 乗換地点に印を出す。
+    for (let index = 1; index < routePoints.length; index++) {
+      if (routePoints[index].transferFromPrevious) {
+        transferMarks.push([
+          (routePoints[index - 1].x + routePoints[index].x) / 2,
+          (routePoints[index - 1].y + routePoints[index].y) / 2
+        ]);
+      }
+    }
+    transferMarks.push(...(journey.extraTransferPoints ?? []));
+    for (const [x, y] of transferMarks) {
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      marker.setAttribute('class', 'transfer-marker');
+      marker.setAttribute('transform', `translate(${x} ${y})`);
+      for (const [className, radius] of [['transfer-marker-ring', 11], ['transfer-marker-core', 4.5]]) {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('class', className);
+        circle.setAttribute('r', radius);
+        marker.appendChild(circle);
+      }
+      routeGroup.appendChild(marker);
+    }
+  }
+
+  // 乗換地点が駅ラベルと重なるときは、ラベルも強調する。
+  for (const candidate of data.stations) {
+    const isTransfer = transferMarks.some(([x, y]) =>
+      x >= candidate.x - 6 && x <= candidate.x + candidate.width + 6 &&
+      y >= candidate.y - 6 && y <= candidate.y + candidate.height + 6);
+    stationLayer.querySelector(`[data-station-id="${candidate.id}"]`)?.classList.toggle('is-transfer', isTransfer);
   }
 
   mapRegion.classList.toggle('has-active-route', routePoints.length > 1);
