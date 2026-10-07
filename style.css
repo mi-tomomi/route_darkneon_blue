@@ -678,19 +678,6 @@ body,
   filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #d6f9ff);
 }
 
-.network-node.is-major .node-bloom {
-  fill: #30bbff;
-  opacity: .76;
-  filter: blur(8px);
-}
-
-.network-node.is-major .node-ring {
-  fill: #a8ecff;
-  stroke: #438fff;
-  stroke-width: 2.6;
-  filter: drop-shadow(0 0 5px #bcf9ff) drop-shadow(0 0 13px #178cff);
-}
-
 .network-node.is-selected .node-bloom {
   fill: #45e5ff;
   opacity: .82;

@@ -26,7 +26,6 @@ const railColors = {
 };
 const railCoordinates = Object.entries(data.routes).flatMap(([line, route]) =>
   route.points.map(point => ({ point, line })));
-const majorStations = new Set(['池袋', '新宿', '渋谷', '東京', '白山', '本駒込', '赤羽', '巣鴨', '上野', '北千住']);
 
 function nearestRailPoint(station) {
   const centerX = station.x + station.width / 2;
@@ -323,16 +322,15 @@ for (const station of data.stations) {
   stationLayer.appendChild(button);
 
   const { point: [nodeX, nodeY], line } = nearestRailPoint(station);
-  const major = majorStations.has(station.name);
   const node = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  node.setAttribute('class', `network-node${major ? ' is-major' : ''}`);
+  node.setAttribute('class', 'network-node');
   node.setAttribute('transform', `translate(${nodeX} ${nodeY})`);
   node.dataset.stationId = station.id;
   node.style.setProperty('--node-color', railColors[line] || '#8bd2ff');
   for (const [className, radius] of [
-    ['node-bloom', major ? 16 : 8],
-    ['node-ring', major ? 9 : 4.6],
-    ['node-core', major ? 5 : 2.5]
+    ['node-bloom', 8],
+    ['node-ring', 4.6],
+    ['node-core', 2.5]
   ]) {
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('class', className);
