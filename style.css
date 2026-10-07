@@ -174,31 +174,38 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+/* 約・数字・分は、フォントが変わっても同じ基準線にそろえる。 */
 .time-approx,
 .time-minutes,
 #travel-time-number {
   position: absolute;
-  display: block;
+  top: 40cqh;
+  display: flex;
+  align-items: baseline;
   margin: 0;
+  line-height: 1;
+}
+
+.time-approx::before,
+.time-minutes::before,
+#travel-time-number::before {
+  content: "";
+  height: 26.42cqh;
 }
 
 .time-approx {
   left: 4.537037cqh;
-  top: 59.259259cqh;
   font-size: 6.481481cqh;
   font-weight: 400;
-  line-height: 8.796296cqh;
 }
 
 #travel-time-number {
   left: 11.111111cqh;
-  top: 50.648148cqh;
   font-family: "Damascus", "Helvetica", "Arial", sans-serif;
   font-size: 26.851852cqh;
   font-weight: 700;
   font-kerning: none;
   font-variant-numeric: normal;
-  line-height: 27.407407cqh;
   letter-spacing: .833333cqh;
 }
 
@@ -210,17 +217,14 @@ button:focus-visible {
 
 #travel-time-number.is-wide-number {
   left: 11.111111cqh;
-  top: 50.648148cqh;
   transform: none;
   letter-spacing: .833333cqh;
 }
 
 .time-minutes {
   left: 41.481481cqh;
-  top: 59.240741cqh;
   font-size: 6.481481cqh;
   font-weight: 400;
-  line-height: 8.796296cqh;
 }
 
 .time-line.is-unregistered .time-approx,
